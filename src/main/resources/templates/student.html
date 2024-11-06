@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Details Upload</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #chartContainer {
+            width: 100%;
+            height: 400px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Upload Student Details</h1>
+    <input type="file" id="fileUpload" accept=".xlsx, .xls" />
+    <button id="uploadBtn">Upload</button>
+    <div id="chartContainer">
+        <canvas id="myChart"></canvas>
+    </div>
+
+    <script>
+        document.getElementById('uploadBtn').addEventListener('click', function () {
+            const fileInput = document.getElementById('fileUpload');
+            const file = fileInput.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = function (e) {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+
+                    // Assuming the first sheet contains the data
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    // Process data to prepare for chart
+                    const labels = jsonData[0].slice(1); // Get subject names (assumes first row has subject names)
+                    const values = jsonData.slice(1).map(row => row.slice(1)); // Get student scores (assumes first column has student names)
+
+                    const averages = values.map(row => {
+                        const total = row.reduce((sum, score) => sum + (score || 0), 0);
+                        return total / row.length;
+                    });
+
+                    // Display chart
+                    createChart(labels, averages);
+                };
+
+                reader.readAsArrayBuffer(file);
+            } else {
+                alert('Please upload a valid XLSX file.');
+            }
+        });
+
+        function createChart(labels, data) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const chartType = data.length > 1 ? 'bar' : 'pie'; // Use bar chart if more than one data point
+
+            new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Average Scores',
+                        data: data,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>
